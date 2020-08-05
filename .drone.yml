@@ -1,0 +1,58 @@
+---
+kind: pipeline
+name: default
+type: docker
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: alertmanager2es_PR
+  image: plugins/docker
+  settings:
+    dry_run: true
+    registry: docker.io
+    repo: ciscocx/alertmanager2es
+  when:
+    event:
+    - pull_request
+    ref:
+    - refs/heads/master
+    - refs/tags/*
+
+- name: alertmanager2es
+  image: plugins/docker
+  settings:
+    auto_tag: true
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    registry: docker.io
+    repo: ciscocx/alertmanager2es
+  when:
+    event:
+    - tag
+    - push
+    ref:
+    - refs/heads/master
+    - refs/tags/*
+
+- name: send_notification
+  image: plugins/slack
+  settings:
+    channel: drone-ci
+    icon_url: https://raw.githubusercontent.com/drone/brand/master/logos/png/dark/drone-logo-png-dark-64.png
+    username: Drone CI
+    webhook:
+      from_secret: slack_webhook
+  when:
+    status:
+    - failure
+
+---
+kind: signature
+hmac: 25c462a6c1d7b4452e8886b7b101191fd98cc23ab0c633df7414eddfe1b6f106
+
+...
